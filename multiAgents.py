@@ -135,7 +135,61 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        totalAgents = gameState.getNumAgents()
+        maxDepth = self.depth
+        legalMoves = gameState.getLegalActions(0) # legal actions for Pacman
+        scores = []
+
+        print(totalAgents, maxDepth, legalMoves)
+
+        for action in legalMoves:
+            successorGameState = gameState.generateSuccessor(0, action)
+            nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
+            nextDepth = 1 + (1//totalAgents) # depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
+            scores.append(self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth))
+
+        print(scores)
+        bestScore = max(scores)
+        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        return legalMoves[chosenIndex]
+
+    def minimaxValue(self, gameState, agentNum, totalAgents, curDepth, maxDepth):
+
+        # print(agentNum, totalAgents, curDepth, maxDepth)
+
+        if curDepth == maxDepth and agentNum == totalAgents-1: # reached last agent of maximum depth
+            return self.evaluationFunction(gameState)
+
+        else:
+
+            legalMoves = gameState.getLegalActions(agentNum)
+
+            if len(legalMoves) == 0:
+                print("Unexpected...")
+                return self.evaluationFunction(gameState)
+
+            bestScore = None
+
+            for action in legalMoves:
+
+                successorGameState = gameState.generateSuccessor(agentNum, action)
+                nextAgent = (agentNum + 1) % totalAgents
+                nextDepth = curDepth + ((agentNum + 1)//totalAgents)
+                print(agentNum, nextAgent, curDepth, nextDepth)
+                successorValue = self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth)
+
+                if bestScore == None:
+                    bestScore = successorValue
+                elif agentNum == 0: # agent is Pacman, max-node
+                    bestScore = max(bestScore, successorValue)
+                else: # agent is a Ghost, min-node
+                    bestScore = min(bestScore, successorValue)
+
+            return bestScore
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
