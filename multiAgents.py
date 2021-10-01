@@ -139,17 +139,17 @@ class MinimaxAgent(MultiAgentSearchAgent):
         totalAgents = gameState.getNumAgents()
         maxDepth = self.depth
         legalMoves = gameState.getLegalActions(0) # legal actions for Pacman
-        scores = []
+        values = []
 
         for action in legalMoves:
             successorGameState = gameState.generateSuccessor(0, action)
             nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
             nextDepth = 1 + (1//totalAgents) # depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
-            scores.append(self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth))
+            values.append(self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth))
 
-        # print(scores)
-        bestScore = max(scores)
-        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        print(values)
+        bestValue = max(values)
+        bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
         return legalMoves[chosenIndex]
@@ -166,7 +166,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             if len(legalMoves) == 0: # a terminal node
                 return self.evaluationFunction(gameState)
 
-            bestScore = None
+            bestValue = None
 
             for action in legalMoves:
 
@@ -175,14 +175,14 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 nextDepth = curDepth + ((agentNum + 1)//totalAgents)
                 successorValue = self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth)
 
-                if bestScore == None:
-                    bestScore = successorValue
+                if bestValue == None:
+                    bestValue = successorValue
                 elif agentNum == 0: # agent is Pacman, max-node
-                    bestScore = max(bestScore, successorValue)
+                    bestValue = max(bestValue, successorValue)
                 else: # agent is a Ghost, min-node
-                    bestScore = min(bestScore, successorValue)
+                    bestValue = min(bestValue, successorValue)
 
-            return bestScore
+            return bestValue
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -195,7 +195,72 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        totalAgents = gameState.getNumAgents()
+        maxDepth = self.depth
+        legalMoves = gameState.getLegalActions(0) # legal actions for Pacman
+        values = []
+
+        alpha = None
+        beta = None
+        for action in legalMoves:
+            successorGameState = gameState.generateSuccessor(0, action)
+            nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
+            nextDepth = 1 + (1//totalAgents) # depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
+            values.append(self.prunedMinimaxValue(successorGameState, alpha, beta, nextAgent, totalAgents, nextDepth, maxDepth))
+
+        print(values)
+        bestValue = max(values)
+        bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        return legalMoves[chosenIndex]
+
+    def prunedMinimaxValue(self, gameState, alpha, beta, agentNum, totalAgents, curDepth, maxDepth):
+        """
+            alpha: max-node's best value on path to root
+            beta: min-node's best value on path to root
+        """
+
+        if curDepth == maxDepth+1 and agentNum == 0: # reached the state obtained after action of last agent of maximum depth
+            return self.evaluationFunction(gameState)
+
+        else:
+
+            legalMoves = gameState.getLegalActions(agentNum)
+
+            if len(legalMoves) == 0: # a terminal node
+                return self.evaluationFunction(gameState)
+
+            bestValue = None
+
+            for action in legalMoves:
+
+                successorGameState = gameState.generateSuccessor(agentNum, action)
+                nextAgent = (agentNum + 1) % totalAgents
+                nextDepth = curDepth + ((agentNum + 1)//totalAgents)
+                successorValue = self.prunedMinimaxValue(successorGameState, alpha, beta, nextAgent, totalAgents, nextDepth, maxDepth)
+
+                if bestValue == None:
+                    bestValue = successorValue
+                elif agentNum == 0: # agent is Pacman, max-node
+                    bestValue = max(bestValue, successorValue)
+                else: # agent is a Ghost, min-node
+                    bestValue = min(bestValue, successorValue)
+                
+                # update alpha or beta and prune based on bestValue so far
+                if agentNum == 0: # max-node
+                    if beta != None and bestValue > beta:
+                        return bestValue
+                    if alpha == None or alpha < bestValue: # alpha = max(alpha, bestValue)  
+                        alpha = bestValue                
+                else: # min-node
+                    if alpha != None and bestValue < alpha:
+                        return bestValue
+                    if beta == None or beta > bestValue: # beta = min(beta, bestValue)  
+                        beta = bestValue
+
+            return bestValue  
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
