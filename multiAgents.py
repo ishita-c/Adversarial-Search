@@ -154,7 +154,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         for action in legalMoves:
             successorGameState = gameState.generateSuccessor(0, action)
             nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
-            nextDepth = 1 + (1//totalAgents) # depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
+            nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
             values.append(self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth))
 
         print(values)
@@ -212,34 +212,54 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
         alpha = None
         beta = None
-        for action in legalMoves:
+        bestValue = None
+        bestIndices = []
+
+        for i in range(len(legalMoves)):
+
+            action = legalMoves[i]
+
             successorGameState = gameState.generateSuccessor(0, action)
             nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
-            nextDepth = 1 + (1//totalAgents) # depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
-            values.append(self.prunedMinimaxValue(successorGameState, alpha, beta, nextAgent, totalAgents, nextDepth, maxDepth))
+            nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
+            successorValue = self.prunedMinimaxValue(successorGameState, alpha, beta, nextAgent, totalAgents, nextDepth, maxDepth)
 
-        print(values)
-        bestValue = max(values)
-        bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
+            if bestValue == None:
+                bestValue = successorValue
+                bestIndices = [i]
+            else: # update bestValue so far and add corresponding indices
+                if bestValue < successorValue:
+                    bestValue = successorValue
+                    bestIndices = [i]
+                elif bestValue == successorValue:
+                    bestIndices.append(i)
+            
+            # update alpha based on bestValue so far
+            if alpha == None or alpha < bestValue: # alpha = max(alpha, bestValue)  
+                alpha = bestValue
+
+        # print(bestValue)
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
         return legalMoves[chosenIndex]
 
     def prunedMinimaxValue(self, gameState, alpha, beta, agentNum, totalAgents, curDepth, maxDepth):
         """
-            alpha: max-node's best value on path to root
-            beta: min-node's best value on path to root
+            alpha: best value for the first max-node reached via path to root
+            beta: best value for the first min-node reached via path to root
         """
 
         if curDepth == maxDepth+1 and agentNum == 0: # reached the state obtained after action of last agent of maximum depth
-            return self.evaluationFunction(gameState)
+            value = self.evaluationFunction(gameState)
+            return value
 
         else:
 
             legalMoves = gameState.getLegalActions(agentNum)
 
             if len(legalMoves) == 0: # a terminal node
-                return self.evaluationFunction(gameState)
+                value = self.evaluationFunction(gameState)
+                return value
 
             bestValue = None
 
@@ -262,7 +282,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     if beta != None and bestValue > beta:
                         return bestValue
                     if alpha == None or alpha < bestValue: # alpha = max(alpha, bestValue)  
-                        alpha = bestValue                
+                        alpha = bestValue           
                 else: # min-node
                     if alpha != None and bestValue < alpha:
                         return bestValue
