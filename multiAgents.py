@@ -305,7 +305,67 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        totalAgents = gameState.getNumAgents()
+        maxDepth = self.depth
+        legalMoves = gameState.getLegalActions(0) # legal actions for Pacman
+        values = []
+
+        for action in legalMoves:
+            successorGameState = gameState.generateSuccessor(0, action)
+            #nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
+            #nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
+            values.append(self.expectimaxValue(successorGameState, 0, 1, maxDepth, totalAgents))
+
+        #print(values)
+        bestValue = max(values)
+        bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        return legalMoves[chosenIndex]
+
+    def MaxValue(self, gameState, curDepth, maxDepth):
+        if curDepth==maxDepth:
+            return self.evaluationFunction(gameState)
+        legalMoves=gameState.getLegalActions(0)
+        numOfMoves=len(legalMoves)
+        if numOfMoves==0:
+            return self.evaluationFunction(gameState)
+        
+        maxValue=float("-inf")
+        for action in legalMoves:
+            successorGameState = gameState.generateSuccessor(0, action)
+            totalAgents = gameState.getNumAgents()
+            if self.expectimaxValue(successorGameState, curDepth, 1, maxDepth, totalAgents)>maxValue:
+                maxValue=self.expectimaxValue(successorGameState, curDepth,1, maxDepth, totalAgents)
+        
+        return maxValue
+
+
+    def expectimaxValue(self, gameState, curDepth, agentNum, maxDepth, totalAgents):
+
+        if curDepth == maxDepth+1 and agentNum == 0: # reached the state obtained after action of last agent of maximum depth
+            return self.evaluationFunction(gameState)
+
+        else:
+
+            legalMoves = gameState.getLegalActions(agentNum)
+            numOfMoves=len(legalMoves)
+            if numOfMoves == 0: # a terminal node
+                return self.evaluationFunction(gameState)
+            
+            bestValue = 0
+            if agentNum==totalAgents-1:
+                for action in legalMoves:
+                    successorGameState = gameState.generateSuccessor(agentNum, action)
+                    bestValue+=self.MaxValue(successorGameState, curDepth+1, maxDepth)
+                    bestValue=bestValue/numOfMoves
+            else:
+                for action in legalMoves:
+                    successorGameState = gameState.generateSuccessor(agentNum, action)
+                    bestValue+=self.expectimaxValue(successorGameState, curDepth, agentNum +1, maxDepth, totalAgents)
+                    bestValue=bestValue/numOfMoves
+
+            return bestValue
 
 def betterEvaluationFunction(currentGameState):
     """
