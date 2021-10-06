@@ -317,7 +317,10 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             successorGameState= gameState.generateSuccessor(0,action)
             #nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
             #nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
-            values.append(self.expectimaxLevel(successorGameState, 0, 1, maxDepth, totalAgents))
+            if totalAgents==1:
+                values.append(self.MaxLevel(successorGameState,0,maxDepth, 1))
+            else:    
+                values.append(self.expectimaxLevel(successorGameState, 0, 1, maxDepth, totalAgents))
             
         #print(values)
         bestValue = max(values)
@@ -338,8 +341,12 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         maxValue = float("-inf")
         for action in legalMoves:
             successorGameState = gameState.generateSuccessor(0,action)
-            if self.expectimaxLevel(successorGameState, curDepth, 1, maxDepth, totalAgents) > maxValue:
-                maxValue = self.expectimaxLevel(successorGameState, curDepth,1, maxDepth, totalAgents)
+            if totalAgents==1:
+                if self.MaxLevel(successorGameState, curDepth+1, maxDepth, 1) > maxValue:
+                    maxValue=self.MaxLevel(successorGameState, curDepth+1, maxDepth, 1)
+            else:
+                if self.expectimaxLevel(successorGameState, curDepth, 1, maxDepth, totalAgents) > maxValue:
+                    maxValue = self.expectimaxLevel(successorGameState, curDepth,1, maxDepth, totalAgents)
 
         return maxValue
         
