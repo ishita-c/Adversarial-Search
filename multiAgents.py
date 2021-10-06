@@ -317,7 +317,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             successorGameState= gameState.generateSuccessor(0,action)
             #nextAgent = 1 % totalAgents # next agent is 0 (Pacman) if there is only 1 agent, i.e. Pacman, else it is 1
             #nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
-            values.append(self.expectimaxLevel(successorGameState,0,1, maxDepth, totalAgents))
+            values.append(self.expectimaxLevel(successorGameState, 0, 1, maxDepth, totalAgents))
             
         #print(values)
         bestValue = max(values)
@@ -328,40 +328,40 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return legalMoves[chosenIndex]
 
     def MaxLevel(self, gameState, curDepth, maxDepth, totalAgents):
-        if curDepth==maxDepth or gameState.isWin() or gameState.isLose():  
+        if curDepth == maxDepth or gameState.isWin() or gameState.isLose():  
             return self.evaluationFunction(gameState)
         legalMoves = gameState.getLegalActions(0)
-        numOfMoves=len(legalMoves)
-        if numOfMoves==0:
+        numOfMoves = len(legalMoves)
+        if numOfMoves == 0:
             return self.evaluationFunction(gameState)
 
         maxValue = float("-inf")
         for action in legalMoves:
-            successorGameState= gameState.generateSuccessor(0,action)
-            if self.expectimaxLevel(successorGameState,curDepth,1, maxDepth, totalAgents)>maxValue:
-                maxValue=self.expectimaxLevel(successorGameState,curDepth,1, maxDepth, totalAgents)
+            successorGameState = gameState.generateSuccessor(0,action)
+            if self.expectimaxLevel(successorGameState, curDepth, 1, maxDepth, totalAgents) > maxValue:
+                maxValue = self.expectimaxLevel(successorGameState, curDepth,1, maxDepth, totalAgents)
 
         return maxValue
         
-    def expectimaxLevel(self,gameState,curDepth, agentNum, maxDepth, totalAgents):
+    def expectimaxLevel(self, gameState, curDepth, agentNum, maxDepth, totalAgents):
         if curDepth == maxDepth+1 and agentNum == 0:
             return self.evaluationFunction(gameState)
 
-        if  gameState.isWin() or gameState.isLose():   
+        if gameState.isWin() or gameState.isLose():   
             return self.evaluationFunction(gameState)
 
         legalMoves = gameState.getLegalActions(agentNum)
         numOfMoves = len(legalMoves)
-        if numOfMoves == 0: #terminal node
+        if numOfMoves == 0: # terminal node
             return self.evaluationFunction(gameState)
 
         bestValue = 0
         for action in legalMoves:
-            successorGameState= gameState.generateSuccessor(agentNum,action)
+            successorGameState = gameState.generateSuccessor(agentNum, action)
             if agentNum == totalAgents - 1:
-                bestValue += self.MaxLevel(successorGameState,curDepth+1, maxDepth, totalAgents)
+                bestValue += self.MaxLevel(successorGameState, curDepth+1, maxDepth, totalAgents)
             else:
-                bestValue += self.expectimaxLevel(successorGameState,curDepth,agentNum+1, maxDepth, totalAgents)
+                bestValue += self.expectimaxLevel(successorGameState, curDepth, agentNum+1, maxDepth, totalAgents)
             
         return bestValue/numOfMoves
         
@@ -374,7 +374,27 @@ def betterEvaluationFunction(currentGameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    newPacmanPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    newGhostPositions = currentGameState.getGhostPositions()
+    total_dist_ghost = 0
+    for ghostPosition in newGhostPositions:
+        total_dist_ghost += abs(newPacmanPos[0]-ghostPosition[0])+ abs(newPacmanPos[1]-ghostPosition[1])
+    min_dist_food = float("inf")
+    for i in range(len(newFood.asList())):
+        dist_food = abs(newFood.asList()[i][0]-newPacmanPos[0])+abs(newFood.asList()[i][1]-newPacmanPos[1])
+        if dist_food < min_dist_food:
+            min_dist_food = dist_food
+    scared_time = sum(newScaredTimes)
+    value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 100*currentGameState.getScore()
+
+    # when ghost is scared, don't penalize for distance from that ghost, only give value for its scared time
+    # takes a lot of time [measure]
+    # average score is only slightly greater than 1000
+
+    return value
 
 # Abbreviation
 better = betterEvaluationFunction
