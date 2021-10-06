@@ -73,18 +73,19 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
         newGhostPositions = successorGameState.getGhostPositions()
-        #print(newFood.asList(), ",", successorGameState, ",", newPos, ",", newScaredTimes, ",", newGhostPositions)
-        dist_ghost=abs(newPos[0]-newGhostPositions[0][0])+ abs(newPos[1]-newGhostPositions[0][1])
-        min=1000
-        for i in range (len(newFood.asList())):
-            d=abs(newFood.asList()[i][0]-newPos[0])+abs(newFood.asList()[i][1]-newPos[1])
-            if d<min:
-                min=d
-        value= 50*(1/min)+dist_ghost+newScaredTimes[0]
-        #print(min)
         "*** YOUR CODE HERE ***"
-        #return successorGameState.getScore()
-        return value+100*successorGameState.getScore()
+        # print(newFood.asList(), ",", successorGameState, ",", newPos, ",", newScaredTimes, ",", newGhostPositions)
+        total_dist_ghost = 0
+        for ghostPosition in newGhostPositions:
+            total_dist_ghost += abs(newPos[0]-ghostPosition[0])+ abs(newPos[1]-ghostPosition[1])
+        min_dist_food = float("inf")
+        for i in range (len(newFood.asList())):
+            dist_food = abs(newFood.asList()[i][0]-newPos[0])+abs(newFood.asList()[i][1]-newPos[1])
+            if dist_food < min_dist_food:
+                min_dist_food = dist_food
+        scared_time = sum(newScaredTimes)
+        value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 100*successorGameState.getScore()
+        return value
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -157,10 +158,11 @@ class MinimaxAgent(MultiAgentSearchAgent):
             nextDepth = 1 + (1//totalAgents) # next depth is 2 if there is only 1 agent, i.e. Pacman, else it is 1
             values.append(self.minimaxValue(successorGameState, nextAgent, totalAgents, nextDepth, maxDepth))
 
-        print(values)
+        # print(values)
         bestValue = max(values)
         bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        # chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        chosenIndex = bestIndices[0]
 
         return legalMoves[chosenIndex]
 
@@ -239,7 +241,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 alpha = bestValue
 
         # print(bestValue)
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        # chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        chosenIndex = bestIndices[0]
 
         return legalMoves[chosenIndex]
 
@@ -319,7 +322,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         #print(values)
         bestValue = max(values)
         bestIndices = [index for index in range(len(values)) if values[index] == bestValue]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        # chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        chosenIndex = bestIndices[0]
 
         return legalMoves[chosenIndex]
 
