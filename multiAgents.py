@@ -76,7 +76,13 @@ class ReflexAgent(Agent):
         newCapsules = successorGameState.getCapsules()
         "*** YOUR CODE HERE ***"
         # print(newFood.asList(), ",", successorGameState, ",", newPos, ",", newScaredTimes, ",", newGhostPositions)
-
+        capsuleReward = len(newCapsules) # for lesser capsules left
+        if capsuleReward == 0:
+            capsuleReward = 0.05
+        foodReward = currentGameState.getNumFood() # for lesser food left
+        if foodReward == 0:
+            foodReward = 0.05
+            
         total_dist_ghost = 0
         for i in range(len(newGhostPositions)):
             if newScaredTimes[i] == 0:
@@ -99,7 +105,7 @@ class ReflexAgent(Agent):
 
         # value = 50*(1/min_dist_food) + (1/min_dist_capsule) + total_dist_ghost + scared_time + 100*successorGameState.getScore()
 
-        value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 10*successorGameState.getScore()
+        value = 100*(1/capsuleReward)+50*(1/foodReward)+ 50*(1/min_dist_food) + total_dist_ghost + scared_time + 10*successorGameState.getScore()
         return value
 
 def scoreEvaluationFunction(currentGameState):
