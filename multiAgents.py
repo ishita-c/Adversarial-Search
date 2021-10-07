@@ -68,23 +68,38 @@ class ReflexAgent(Agent):
         """
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
+        newPacmanPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
         newGhostPositions = successorGameState.getGhostPositions()
+        newCapsules = successorGameState.getCapsules()
         "*** YOUR CODE HERE ***"
         # print(newFood.asList(), ",", successorGameState, ",", newPos, ",", newScaredTimes, ",", newGhostPositions)
+
         total_dist_ghost = 0
-        for ghostPosition in newGhostPositions:
-            total_dist_ghost += abs(newPos[0]-ghostPosition[0])+ abs(newPos[1]-ghostPosition[1])
+        for i in range(len(newGhostPositions)):
+            if newScaredTimes[i] == 0:
+                ghostPosition = newGhostPositions[i]
+                total_dist_ghost += abs(newPacmanPos[0]-ghostPosition[0])+ abs(newPacmanPos[1]-ghostPosition[1])
+
         min_dist_food = float("inf")
         for i in range (len(newFood.asList())):
-            dist_food = abs(newFood.asList()[i][0]-newPos[0])+abs(newFood.asList()[i][1]-newPos[1])
+            dist_food = abs(newFood.asList()[i][0]-newPacmanPos[0])+abs(newFood.asList()[i][1]-newPacmanPos[1])
             if dist_food < min_dist_food:
                 min_dist_food = dist_food
+   
+        # min_dist_capsule = float("inf")
+        # for i in range(len(newCapsules)):
+        #     dist_capsule = abs(newCapsules[i][0]-newPacmanPos[0])+abs(newCapsules[i][1]-newPacmanPos[1])
+        #     if dist_capsule < min_dist_capsule:
+        #         min_dist_food = dist_capsule
+
         scared_time = sum(newScaredTimes)
-        value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 100*successorGameState.getScore()
+
+        # value = 50*(1/min_dist_food) + (1/min_dist_capsule) + total_dist_ghost + scared_time + 100*successorGameState.getScore()
+
+        value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 10*successorGameState.getScore()
         return value
 
 def scoreEvaluationFunction(currentGameState):
@@ -373,6 +388,72 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return bestValue/numOfMoves
         
 
+def bfs(gameState):
+
+    pacmanPos = gameState.getPacmanPosition()
+    pacmanPos = (int(pacmanPos[0]), int(pacmanPos[1]))
+    ghostPositions = gameState.getGhostPositions()
+    capsulePositions = gameState.getCapsules()
+    foods = gameState.getFood()
+    walls = gameState.getWalls()
+    h = walls.height
+    w = walls.width
+
+    print(ghostPositions)
+
+    ghosts = [[False for j in range(h)] for i in range(w)]
+    for ghostPos in ghostPositions:
+        print(w, h, int(ghostPos[0]), int(ghostPos[1]))
+        ghosts[int(ghostPos[0])][int(ghostPos[1])] = True
+
+    capsules = [[False for j in range(h)] for i in range(w)]
+    for capsulePos in capsulePositions:
+        capsules[int(capsulePos[0])][int(capsulePos[1])] = True
+
+    queue = []
+    visited = [[False for j in range(h)] for i in range(w)]
+    level = [[0 for j in range(h)] for i in range(w)]
+
+    queue.append(pacmanPos)
+    visited[pacmanPos[0]][pacmanPos[1]] = True
+
+    positions = [-1 for i in range(3)]
+
+    foodPresent = gameState.getNumFood()!=0
+    capsulesPresent = len(capsulePositions)!=0
+    ghostPresent = gameState.getNumAgents()!=1
+
+    while len(queue) != 0:
+
+        curPos = queue.pop(0)
+        print(positions)
+
+        if not visited[curPos[0]][curPos[1]]:  
+            visited[curPos[0]][curPos[1]] = True          
+            if positions[0] == -1:
+                if foods[curPos[0]][curPos[1]]:
+                    positions[0] = level[curPos[0]][curPos[1]]                        
+            if positions[1] == -1:
+                if ghosts[curPos[0]][curPos[1]]:
+                    positions[1] = level[curPos[0]][curPos[1]]    
+            if positions[2] == -1:
+                if capsules[curPos[0]][curPos[1]]:
+                    positions[2] = level[curPos[0]][curPos[1]]
+
+        if (positions[0] != -1 or not foodPresent) and (positions[1] != -1 or not ghostPresent) and (positions[2] != -1 or not capsulesPresent):
+            break          
+
+        for i in [-1,1]:
+            for j in [-1,1]:
+                newPos = (curPos[0]+i, curPos[1]+j)
+                if newPos[0] < w and newPos[0] > -1 and newPos[1] < h and newPos[1] > -1:
+                    if not visited[newPos[0]][newPos[1]]:
+                        queue.append(newPos)
+                        level[newPos[0]][newPos[1]] = level[curPos[0]][curPos[1]] + 1   
+
+    return positions
+        
+
 def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
@@ -386,16 +467,47 @@ def betterEvaluationFunction(currentGameState):
     newGhostStates = currentGameState.getGhostStates()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
     newGhostPositions = currentGameState.getGhostPositions()
+    newCapsules = currentGameState.getCapsules()
+
+    capsuleReward = len(newCapsules) # for lesser capsules left
+    if capsuleReward == 0:
+        capsuleReward = 0.05
+    foodReward = currentGameState.getNumFood() # for lesser food left
+    if foodReward == 0:
+        foodReward = 0.05
+
     total_dist_ghost = 0
-    for ghostPosition in newGhostPositions:
-        total_dist_ghost += abs(newPacmanPos[0]-ghostPosition[0])+ abs(newPacmanPos[1]-ghostPosition[1])
+    scared_ghost_dist = 0
+    for i in range(len(newGhostPositions)):
+            if newScaredTimes[i] == 0:
+                ghostPosition = newGhostPositions[i]
+                total_dist_ghost += abs(newPacmanPos[0]-ghostPosition[0])+ abs(newPacmanPos[1]-ghostPosition[1])
+            else:
+                ghostPosition = newGhostPositions[i]
+                ghost_dist = abs(newPacmanPos[0]-ghostPosition[0])+ abs(newPacmanPos[1]-ghostPosition[1])
+                if ghost_dist < newScaredTimes[i]:
+                    scared_ghost_dist += ghost_dist # reward for being close to scared ghost
+
     min_dist_food = float("inf")
     for i in range(len(newFood.asList())):
         dist_food = abs(newFood.asList()[i][0]-newPacmanPos[0])+abs(newFood.asList()[i][1]-newPacmanPos[1])
         if dist_food < min_dist_food:
             min_dist_food = dist_food
-    scared_time = sum(newScaredTimes)
-    value = 50*(1/min_dist_food) + total_dist_ghost + scared_time + 100*currentGameState.getScore()
+
+    # min_dist_capsule = float("inf")
+    # for i in range(len(newCapsules)):
+    #     dist_cap = abs(newCapsules[i][0]-newPacmanPos[0])+abs(newCapsules[i][1]-newPacmanPos[1])
+    #     if dist_cap < min_dist_capsule:
+    #         min_dist_capsule = dist_cap
+
+    # scared_time = sum(newScaredTimes)
+
+    # min_positions = bfs(currentGameState)  
+
+    if scared_ghost_dist == 0:
+        scared_ghost_dist = float("-inf")
+
+    value = 50*(1/foodReward) + 10*(1/min_dist_food) + 100*(1/capsuleReward) + 0.25*total_dist_ghost + 5*(1/scared_ghost_dist) + currentGameState.getScore()
 
     # when ghost is scared, don't penalize for distance from that ghost, only give value for its scared time
     # takes a lot of time [measure]
